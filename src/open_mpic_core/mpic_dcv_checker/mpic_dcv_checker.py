@@ -6,6 +6,7 @@ import dns.asyncresolver
 import requests
 import re
 import aiohttp
+import aiohttp.web
 import base64
 
 from open_mpic_core.common_domain.check_request import DcvCheckRequest
@@ -48,6 +49,8 @@ class MpicDcvChecker:
             connector=connector,
             timeout=aiohttp.ClientTimeout(total=30),  # Add reasonable timeouts
         )
+        self.logger.info("MpicDcvChecker initialized")
+
 
     async def shutdown(self):
         """ Close the async HTTP client.
@@ -149,6 +152,7 @@ class MpicDcvChecker:
             token = request.dcv_check_parameters.validation_details.token
             token_url = f"http://{domain_or_ip_target}/{MpicDcvChecker.WELL_KNOWN_ACME_PATH}/{token}"  # noqa E501 (http)
             dcv_check_response = self.create_empty_check_response(DcvValidationMethod.ACME_HTTP_01)
+        self.logger.info("MpicDcvChecker checking URL %s", token_url)
         try:
             # TODO timeouts? circuit breaker? failsafe? look into it...
             # noinspection PyUnresolvedReferences
@@ -156,7 +160,7 @@ class MpicDcvChecker:
                 async with self._async_http_client.get(url=token_url, headers=http_headers) as response:
                     await MpicDcvChecker.evaluate_http_lookup_response(request, dcv_check_response, response, token_url,
                                                                     expected_response_content)
-        except aiohttp.ClientError as e:
+        except aiohttp.web.HTTPException as e:
             dcv_check_response.timestamp_ns = time.time_ns()
             dcv_check_response.errors = [MpicValidationError(error_type=e.__class__.__name__, error_message=str(e))]
         return dcv_check_response
