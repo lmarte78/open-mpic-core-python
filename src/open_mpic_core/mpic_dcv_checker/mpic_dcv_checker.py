@@ -152,11 +152,13 @@ class MpicDcvChecker:
         try:
             # TODO timeouts? circuit breaker? failsafe? look into it...
             # noinspection PyUnresolvedReferences
-            async with self.logger.trace_timing(f"HTTP lookup for target {token_url}"):
-                async with self._async_http_client.get(url=token_url, headers=http_headers) as response:
-                    await MpicDcvChecker.evaluate_http_lookup_response(request, dcv_check_response, response, token_url,
-                                                                       expected_response_content)
-        except aiohttp.ClientError as e:
+            # async with self.logger.trace_timing(f"HTTP lookup for target {token_url}"):
+            async with self._async_http_client.get(url=token_url, headers=http_headers) as response:
+                await MpicDcvChecker.evaluate_http_lookup_response(request, dcv_check_response, response, token_url,
+                                                                    expected_response_content)
+        except Exception as e:
+            self.logger.error("Got an exception type is: %s", type(e))
+            self.logger.error("Got an exception: %s", str(e))
             dcv_check_response.timestamp_ns = time.time_ns()
             dcv_check_response.errors = [MpicValidationError(error_type=e.__class__.__name__, error_message=str(e))]
         return dcv_check_response
